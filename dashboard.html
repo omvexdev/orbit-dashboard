@@ -1,0 +1,846 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>ORBIT | Analytics Dashboard</title>
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --gold: #d4af37;
+            --gold-dim: rgba(212, 175, 55, 0.2);
+            --gold-glow: rgba(212, 175, 55, 0.4);
+            --bg-deep: #030303;
+            --surface: #0a0a0a;
+            --border: #1a1a1a;
+            --text-primary: #ffffff;
+            --text-secondary: #888888;
+            --success: #00ff88;
+        }
+
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+            background: var(--bg-deep);
+            color: var(--text-primary);
+            overflow-x: hidden;
+        }
+
+        /* Simple canvas background - no complex 3D */
+        #bg-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        [data-scroll-container] {
+            position: relative;
+            z-index: 10;
+        }
+
+        /* Custom cursor - only on desktop */
+        @media (pointer: fine) {
+            .custom-cursor {
+                width: 20px;
+                height: 20px;
+                background: rgba(212, 175, 55, 0.3);
+                border-radius: 50%;
+                position: fixed;
+                pointer-events: none;
+                z-index: 9999;
+                backdrop-filter: blur(4px);
+                border: 1px solid var(--gold);
+                transition: transform 0.1s ease;
+            }
+        }
+
+        /* Top Bar */
+        .top-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: rgba(3, 3, 3, 0.95);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--gold-dim);
+            padding: 0.8rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 100;
+        }
+
+        .logo-area h1 {
+            font-size: 1.5rem;
+            font-weight: 800;
+            letter-spacing: 4px;
+            background: linear-gradient(135deg, #fff, var(--gold));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .logo-area span {
+            font-size: 0.6rem;
+            color: var(--text-secondary);
+            margin-left: 8px;
+        }
+
+        .nav-menu {
+            display: flex;
+            gap: 2rem;
+        }
+
+        a .nav-item {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: color 0.3s;
+            padding: 0.5rem 0;
+        }
+
+
+        a .nav-item:hover, .nav-item.active {
+            color: var(--gold);
+        }
+        a, .nav-item a, .profile-link a {
+    color: inherit;
+    text-decoration: none;
+}
+
+.nav-item {
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: color 0.3s;
+    padding: 0.5rem 0;
+    background: none;
+    border: none;
+}
+
+.nav-item:hover, .nav-item.active {
+    color: var(--gold);
+}
+
+/* Remove any blue default link styling */
+.nav-item:visited, 
+.nav-item:active,
+.nav-item:focus {
+    color: var(--text-secondary);
+}
+
+.nav-item.active:visited,
+.nav-item.active:active {
+    color: var(--gold);
+} 
+        .user-actions {
+            display: flex;
+            align-items: center;
+            gap: 1.2rem;
+        }
+
+        .user-actions i {
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: color 0.3s;
+        }
+
+        .user-actions i:hover {
+            color: var(--gold);
+        }
+
+        .avatar {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, var(--gold), #b8941a);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            color: #000;
+            cursor: pointer;
+        }
+
+        /* Main Content */
+        .main-content {
+            padding: 6rem 2rem 4rem;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .welcome-header {
+            margin-bottom: 2.5rem;
+        }
+
+        .welcome-header h2 {
+            font-size: 2.2rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #fff, var(--gold));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .welcome-header p {
+            color: var(--text-secondary);
+            margin-top: 0.5rem;
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1.5rem;
+            margin-bottom: 2.5rem;
+        }
+
+        .stat-card {
+            background: rgba(10, 10, 10, 0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 1.2rem;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .stat-card:hover {
+            border-color: var(--gold);
+            transform: translateY(-4px);
+        }
+
+        .stat-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: var(--text-secondary);
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 800;
+            margin: 0.5rem 0;
+        }
+
+        .stat-trend {
+            font-size: 0.7rem;
+            color: var(--success);
+        }
+
+        /* Two Columns */
+        .two-columns {
+            display: grid;
+            grid-template-columns: 1.2fr 0.8fr;
+            gap: 1.5rem;
+        }
+
+        .chart-panel, .activity-panel {
+            background: rgba(10, 10, 10, 0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 1.2rem;
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.2rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .panel-header h3 {
+            font-size: 0.85rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .panel-header h3 i {
+            color: var(--gold);
+        }
+
+        /* Chart Bars - Simple, reliable */
+        .chart-container {
+            padding: 1rem 0;
+        }
+
+        .bars-wrapper {
+            display: flex;
+            align-items: flex-end;
+            gap: 12px;
+            height: 200px;
+        }
+
+        .bar-item {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .bar {
+            width: 100%;
+            background: linear-gradient(180deg, var(--gold), #ffd700);
+            border-radius: 8px;
+            transition: height 0.4s cubic-bezier(0.34, 1.2, 0.64, 1);
+            cursor: pointer;
+            min-height: 4px;
+        }
+
+        .bar:hover {
+            filter: brightness(1.1);
+            box-shadow: 0 0 12px var(--gold-glow);
+        }
+
+        .bar-label {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+        }
+
+        .chart-footer {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 1.5rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border);
+        }
+
+        .stat-badge {
+            text-align: center;
+            padding: 0.3rem 0.8rem;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .stat-badge:hover {
+            background: rgba(212, 175, 55, 0.1);
+        }
+
+        .stat-badge .number {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--gold);
+        }
+
+        .stat-badge .label {
+            font-size: 0.6rem;
+            color: var(--text-secondary);
+        }
+
+        /* Activity Timeline */
+        .timeline {
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+        }
+
+        .timeline-item {
+            display: flex;
+            gap: 12px;
+            padding: 0.8rem;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            cursor: pointer;
+            transition: all 0.2s;
+            border-radius: 12px;
+        }
+
+        .timeline-item:hover {
+            background: rgba(212, 175, 55, 0.08);
+            transform: translateX(4px);
+        }
+
+        .timeline-icon {
+            width: 36px;
+            height: 36px;
+            background: rgba(212, 175, 55, 0.1);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--gold);
+        }
+
+        .timeline-content {
+            flex: 1;
+        }
+
+        .timeline-title {
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .timeline-desc {
+            font-size: 0.65rem;
+            color: var(--text-secondary);
+        }
+
+        .timeline-time {
+            font-size: 0.6rem;
+            color: var(--gold);
+        }
+
+        /* Status Bar */
+        .status-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0, 0, 0, 0.95);
+            backdrop-filter: blur(20px);
+            border-top: 1px solid var(--gold-dim);
+            padding: 0.5rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            z-index: 100;
+            font-size: 0.65rem;
+            font-family: monospace;
+        }
+
+        .status-dot {
+            display: inline-block;
+            width: 6px;
+            height: 6px;
+            background: var(--success);
+            border-radius: 50%;
+            margin-right: 6px;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        /* Refresh icon */
+        .fa-rotate-right {
+            cursor: pointer;
+            transition: transform 0.3s;
+        }
+
+        .fa-rotate-right:hover {
+            color: var(--gold);
+        }
+
+        /* Responsive */
+        @media (max-width: 900px) {
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
+            .two-columns { grid-template-columns: 1fr; }
+            .main-content { padding: 5rem 1.2rem 3rem; }
+        }
+
+        @media (max-width: 550px) {
+            .stats-grid { grid-template-columns: 1fr; }
+            .nav-menu { display: none; }
+            .top-bar { padding: 0.8rem 1rem; }
+        }
+        /* Custom cursor effect - add to your existing CSS */
+@media (pointer: fine) {
+    .custom-cursor {
+        width: 24px;
+        height: 24px;
+        background: rgba(212, 175, 55, 0.25);
+        border-radius: 50%;
+        position: fixed;
+        pointer-events: none;
+        z-index: 9999;
+        backdrop-filter: blur(4px);
+        border: 1.5px solid var(--gold);
+        transition: transform 0.1s ease;
+        transform: translate(-50%, -50%);
+    }
+    
+    /* Hide default cursor on interactive elements (optional) */
+    button, .nav-item, .stat-card, .timeline-item, .bar, 
+    .fa-rotate-right, .avatar, .user-actions i, .stat-badge {
+        cursor: pointer;
+    }
+}
+/* Light Mode Variables - add to existing CSS */
+body.light-mode {
+    --bg-deep: #f5f5f5;
+    --bg-light: #ffffff;
+    --surface: #ffffff;
+    --surface-light: #f0f0f0;
+    --border: #e0e0e0;
+    --text-primary: #1a1a1a;
+    --text-secondary: #666666;
+}
+
+body {
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+body.light-mode #bg-canvas {
+    opacity: 0.3;
+}
+
+body.light-mode .top-bar {
+    background: rgba(255, 255, 255, 0.95);
+}
+
+body.light-mode .settings-card,
+body.light-mode .chart-panel,
+body.light-mode .activity-panel,
+body.light-mode .stat-card,
+body.light-mode .profile-card {
+    background: rgba(255, 255, 255, 0.9);
+}
+
+body.light-mode .status-bar {
+    background: rgba(255, 255, 255, 0.95);
+}
+
+body.light-mode .toggle-switch {
+    background: #ccc;
+}
+
+body.light-mode .select-group select {
+    background: rgba(0, 0, 0, 0.05);
+    color: #1a1a1a;
+}
+    </style>
+</head>
+<body>
+
+<div class="custom-cursor"></div>
+    <canvas id="bg-canvas"></canvas>
+
+    <div class="app">
+        <!-- Top Bar -->
+        <div class="top-bar">
+            <div class="logo-area">
+                <h1>ORBIT</h1>
+                <span>ANALYTICS</span>
+            </div>
+            <div class="nav-menu">
+               <div class="nav-item active">DASHBOARD</div>
+<div class="nav-item" onclick="window.location.href='profile.html'">PROFILE</div>
+<div class="nav-item" onclick="window.location.href='settings.html'">SETTINGS</div>
+            </div>
+            <div class="user-actions">
+                <i class="fas fa-bell"></i>
+                <div class="avatar">OM</div>
+                <i class="fas fa-sign-out-alt" id="logoutBtn"></i>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <div class="welcome-header">
+                <h2>Welcome back, Om 👋</h2>
+                <p>Your analytics overview is ready</p>
+            </div>
+
+            <!-- Stats Cards -->
+            <div class="stats-grid">
+                <div class="stat-card"><div class="stat-label">Active Users</div><div class="stat-value">1,240</div><div class="stat-trend"><i class="fas fa-arrow-up"></i> +12%</div></div>
+                <div class="stat-card"><div class="stat-label">Revenue</div><div class="stat-value">$8,540</div><div class="stat-trend"><i class="fas fa-arrow-up"></i> +18%</div></div>
+                <div class="stat-card"><div class="stat-label">Conversion</div><div class="stat-value">3.2%</div><div class="stat-trend"><i class="fas fa-arrow-up"></i> +0.8%</div></div>
+                <div class="stat-card"><div class="stat-label">Engagement</div><div class="stat-value">78%</div><div class="stat-trend"><i class="fas fa-charging-station"></i> High</div></div>
+            </div>
+
+            <div class="two-columns">
+                <!-- Chart Panel -->
+                <div class="chart-panel">
+                    <div class="panel-header">
+                        <h3><i class="fas fa-chart-line"></i> Weekly Engagement</h3>
+                        <i class="fas fa-rotate-right" id="refreshChart"></i>
+                    </div>
+                    <div class="chart-container">
+                        <div class="bars-wrapper" id="barsWrapper">
+                            <!-- Bars will be populated by JS -->
+                        </div>
+                        <div class="chart-footer">
+                            <div class="stat-badge"><div class="number">+18.2%</div><div class="label">vs last week</div></div>
+                            <div class="stat-badge"><div class="number">91</div><div class="label">Peak (Sat)</div></div>
+                            <div class="stat-badge"><div class="number">78.3</div><div class="label">Average</div></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Activity Panel -->
+                <div class="activity-panel">
+                    <div class="panel-header">
+                        <h3><i class="fas fa-clock"></i> Recent Activity</h3>
+                        <i class="fas fa-ellipsis-h"></i>
+                    </div>
+                    <div class="timeline">
+                        <div class="timeline-item"><div class="timeline-icon"><i class="fas fa-user-plus"></i></div><div class="timeline-content"><div class="timeline-title">New user signed up</div><div class="timeline-desc">alex@orbit.global joined</div></div><div class="timeline-time">12m ago</div></div>
+                        <div class="timeline-item"><div class="timeline-icon"><i class="fas fa-credit-card"></i></div><div class="timeline-content"><div class="timeline-title">Payment received</div><div class="timeline-desc">$249.00 - Premium</div></div><div class="timeline-time">2h ago</div></div>
+                        <div class="timeline-item"><div class="timeline-icon"><i class="fas fa-crown"></i></div><div class="timeline-content"><div class="timeline-title">Subscription upgraded</div><div class="timeline-desc">3 users to Pro plan</div></div><div class="timeline-time">5h ago</div></div>
+                        <div class="timeline-item"><div class="timeline-icon"><i class="fas fa-chart-line"></i></div><div class="timeline-content"><div class="timeline-title">Weekly report generated</div><div class="timeline-desc">Revenue up 18.2%</div></div><div class="timeline-time">1d ago</div></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Status Bar -->
+        <div class="status-bar">
+            <div><span class="status-dot"></span> SYSTEM ONLINE</div>
+            <div>ORBIT v2.4 · ENCRYPTED</div>
+        </div>
+    </div>
+
+    <script>
+       
+        (function initBackground() {
+            const canvas = document.getElementById('bg-canvas');
+            const ctx = canvas.getContext('2d');
+            
+            let width = window.innerWidth;
+            let height = window.innerHeight;
+            let particles = [];
+            const PARTICLE_COUNT = 80;
+            
+            function resize() {
+                width = window.innerWidth;
+                height = window.innerHeight;
+                canvas.width = width;
+                canvas.height = height;
+            }
+            
+            function initParticles() {
+                particles = [];
+                for (let i = 0; i < PARTICLE_COUNT; i++) {
+                    particles.push({
+                        x: Math.random() * width,
+                        y: Math.random() * height,
+                        radius: Math.random() * 2 + 0.5,
+                        alpha: Math.random() * 0.3 + 0.1,
+                        speedX: (Math.random() - 0.5) * 0.3,
+                        speedY: (Math.random() - 0.5) * 0.2
+                    });
+                }
+            }
+            
+            function draw() {
+                if (!ctx) return;
+                ctx.clearRect(0, 0, width, height);
+                
+                // Draw gradient background
+                const gradient = ctx.createLinearGradient(0, 0, width, height);
+                gradient.addColorStop(0, '#030303');
+                gradient.addColorStop(1, '#0a0a0a');
+                ctx.fillStyle = gradient;
+                ctx.fillRect(0, 0, width, height);
+                
+                // Draw particles
+                for (let p of particles) {
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                    ctx.fillStyle = `rgba(212, 175, 55, ${p.alpha})`;
+                    ctx.fill();
+                    
+                    // Update position
+                    p.x += p.speedX;
+                    p.y += p.speedY;
+                    
+                    // Wrap around
+                    if (p.x < 0) p.x = width;
+                    if (p.x > width) p.x = 0;
+                    if (p.y < 0) p.y = height;
+                    if (p.y > height) p.y = 0;
+                }
+                
+                requestAnimationFrame(draw);
+            }
+            
+            window.addEventListener('resize', () => {
+                resize();
+                initParticles();
+            });
+            
+            resize();
+            initParticles();
+            draw();
+        })();
+        
+        
+        const chartData = [
+            { day: 'Mon', value: 65 },
+            { day: 'Tue', value: 78 },
+            { day: 'Wed', value: 82 },
+            { day: 'Thu', value: 74 },
+            { day: 'Fri', value: 88 },
+            { day: 'Sat', value: 91 },
+            { day: 'Sun', value: 70 }
+        ];
+        
+        const MAX_HEIGHT = 160;
+        
+        function renderBars() {
+            const wrapper = document.getElementById('barsWrapper');
+            if (!wrapper) return;
+            
+            wrapper.innerHTML = '';
+            
+            chartData.forEach(item => {
+                const barItem = document.createElement('div');
+                barItem.className = 'bar-item';
+                
+                const bar = document.createElement('div');
+                bar.className = 'bar';
+                const height = (item.value / 100) * MAX_HEIGHT;
+                bar.style.height = Math.max(25, height) + 'px';
+                bar.setAttribute('data-value', item.value);
+                bar.setAttribute('title', `${item.value}%`);
+                
+                const label = document.createElement('div');
+                label.className = 'bar-label';
+                label.textContent = item.day;
+                
+                barItem.appendChild(bar);
+                barItem.appendChild(label);
+                wrapper.appendChild(barItem);
+            });
+        }
+        
+        function animateBars() {
+            const bars = document.querySelectorAll('.bar');
+            bars.forEach((bar, idx) => {
+                const targetHeight = bar.style.height;
+                bar.style.height = '4px';
+                setTimeout(() => {
+                    bar.style.height = targetHeight;
+                }, idx * 50);
+            });
+        }
+        
+        renderBars();
+        setTimeout(animateBars, 100);
+        
+        // Refresh chart
+        document.getElementById('refreshChart')?.addEventListener('click', () => {
+            const icon = document.getElementById('refreshChart');
+            icon.style.transform = 'rotate(360deg)';
+            setTimeout(() => { icon.style.transform = ''; }, 600);
+            
+            const bars = document.querySelectorAll('.bar');
+            bars.forEach(bar => {
+                bar.style.height = '4px';
+            });
+            setTimeout(() => {
+                bars.forEach((bar, idx) => {
+                    const originalHeight = (chartData[idx].value / 100) * MAX_HEIGHT;
+                    setTimeout(() => {
+                        bar.style.height = Math.max(25, originalHeight) + 'px';
+                    }, idx * 50);
+                });
+            }, 150);
+        });
+        
+        // ========= INTERACTIONS =========
+        // Navigation
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.addEventListener('click', function() {
+                document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+                this.classList.add('active');
+               
+                
+            });
+        });
+        
+        // Logout
+        document.getElementById('logoutBtn')?.addEventListener('click', () => {
+            alert('Logged out successfully');
+        });
+        
+        // Stats card click feedback
+        document.querySelectorAll('.stat-card').forEach(card => {
+            card.addEventListener('click', () => {
+                console.log('Stat card clicked');
+            });
+        });
+        
+        // Status bar dynamic text
+        const statusMessages = ['SYSTEM ONLINE', 'SECURE TUNNEL', 'DATA SYNC', 'ALL NOMINAL'];
+        let msgIndex = 0;
+        setInterval(() => {
+            const statusSpan = document.querySelector('.status-bar div:first-child');
+            if (statusSpan) {
+                msgIndex = (msgIndex + 1) % statusMessages.length;
+                statusSpan.innerHTML = `<span class="status-dot"></span> ${statusMessages[msgIndex]}`;
+            }
+        }, 4000);
+        // ========= CUSTOM CURSOR EFFECT =========
+const cursor = document.querySelector('.custom-cursor');
+
+if (cursor) {
+    // Track mouse movement
+    document.addEventListener('mousemove', (e) => {
+        cursor.style.transform = `translate(${e.clientX}px, ${e.clientY}px)`;
+    });
+    
+    // Hover effect for interactive elements
+    const interactiveElements = document.querySelectorAll(
+        '.nav-item, .stat-card, .timeline-item, .bar, ' +
+        '.fa-rotate-right, .avatar, .user-actions i, .stat-badge, ' +
+        '#logoutBtn, .fa-bell'
+    );
+    
+    interactiveElements.forEach(el => {
+        el.addEventListener('mouseenter', () => {
+            cursor.style.transform += ' scale(1.5)';
+            cursor.style.backgroundColor = 'rgba(212, 175, 55, 0.5)';
+            cursor.style.borderWidth = '2px';
+        });
+        
+        el.addEventListener('mouseleave', () => {
+            cursor.style.transform = cursor.style.transform.replace(' scale(1.5)', '');
+            cursor.style.backgroundColor = 'rgba(212, 175, 55, 0.25)';
+            cursor.style.borderWidth = '1.5px';
+        });
+    });
+    
+    // Hide cursor when leaving window
+    document.addEventListener('mouseleave', () => {
+        cursor.style.opacity = '0';
+    });
+    
+    document.addEventListener('mouseenter', () => {
+        cursor.style.opacity = '1';
+    });
+}
+// ========= DARK MODE SYNC =========
+function applyDarkMode() {
+    const isDark = localStorage.getItem('orbitDarkMode');
+    if (isDark === 'false') {
+        document.body.classList.add('light-mode');
+    } else {
+        document.body.classList.remove('light-mode');
+    }
+}
+
+// Apply on page load
+applyDarkMode();
+
+// Optional: Listen for changes (if you want real-time sync across tabs)
+window.addEventListener('storage', (e) => {
+    if (e.key === 'orbitDarkMode') {
+        applyDarkMode();
+    }
+});
+    </script>
+</body>
+</html>
